@@ -1,0 +1,81 @@
+﻿@model B2BWholesale.Core.Models.Order
+@{
+    ViewData["Title"] = $"Hóa đơn #{Model.OrderID}";
+    var grandTotal = Model.OrderDetails.Sum(d => d.Quantity * d.UnitAmount);
+}
+
+<div class="d-flex justify-content-between mb-3 d-print-none">
+    <a asp-action="MyOrders" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Quay lại Đơn hàng của tôi
+    </a>
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer-fill me-1"></i>In hóa đơn / Lưu PDF
+    </button>
+</div>
+
+<div class="card shadow-sm border-0 p-4 bg-white">
+    <div class="row border-bottom pb-3 mb-4">
+        <div class="col-sm-6">
+            <h3 class="fw-bold text-primary mb-1">HÓA ĐƠN BÁN SỈ (INVOICE)</h3>
+            <p class="text-muted mb-0">B2B Wholesale Distribution System</p>
+        </div>
+        <div class="col-sm-6 text-sm-end">
+            <h5 class="fw-bold mb-1">Mã đơn: #@Model.OrderID</h5>
+            <p class="mb-0"><strong>Ngày đặt:</strong> @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+            <p class="mb-0"><strong>Trạng thái:</strong> @Model.OrderStatus</p>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small">Thông tin Đại lý nhận hàng</h6>
+        <p class="fw-bold mb-1">@Model.Agent?.AgentName</p>
+        <p class="mb-1"><i class="bi bi-geo-alt me-1"></i>@Model.Agent?.Address</p>
+        <p class="mb-0"><i class="bi bi-telephone me-1"></i>@Model.Agent?.Phone</p>
+    </div>
+
+    <table class="table table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Tên mặt hàng</th>
+                <th>Quy cách</th>
+                <th class="text-center">Số lượng</th>
+                <th class="text-end">Đơn giá</th>
+                <th class="text-end">Thành tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                int idx = 1;
+            }
+            @foreach (var d in Model.OrderDetails)
+            {
+                <tr>
+                    <td>@(idx++)</td>
+                    <td class="fw-semibold">@d.Item?.ItemName</td>
+                    <td>@d.Item?.Size</td>
+                    <td class="text-center">@d.Quantity</td>
+                    <td class="text-end">@d.UnitAmount.ToString("N0") đ</td>
+                    <td class="text-end fw-semibold">@((d.Quantity * d.UnitAmount).ToString("N0")) đ</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr class="table-light">
+                <td colspan="5" class="text-end fw-bold fs-5">Tổng thanh toán:</td>
+                <td class="text-end fw-bold fs-5 text-danger">@grandTotal.ToString("N0") VNĐ</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="row mt-5 pt-4 text-center">
+        <div class="col-6">
+            <p class="fw-bold mb-5">Đại diện Đại lý</p>
+            <p class="text-muted small">(Ký, ghi rõ họ tên)</p>
+        </div>
+        <div class="col-6">
+            <p class="fw-bold mb-5">Đại diện Kho phân phối</p>
+            <p class="text-muted small">(Ký, đóng dấu)</p>
+        </div>
+    </div>
+</div>

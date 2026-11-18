@@ -1,0 +1,191 @@
+﻿@model List<B2BWholesale.Core.Models.Item>
+@{
+    ViewData["Title"] = "Danh mục sản phẩm & Đặt hàng sỉ";
+}
+
+<div class="row g-4">
+    <!-- CỘT TRÁI: DANH MỤC HÀNG HÓA (CATALOG) -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="bi bi-box-seam me-2"></i>Danh mục Hàng hóa (Catalog)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="catalogTable" class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tên mặt hàng</th>
+                                <th>Quy cách</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-center">Tồn kho</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@item.ItemName</td>
+                                    <td class="text-muted small">@item.Size</td>
+                                    <td class="text-end">@item.Price.ToString("N0") đ</td>
+                                    <td class="text-center">
+                                        @if (item.StockQuantity <= 10)
+                                        {
+                                            <span class="badge bg-danger">@item.StockQuantity</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">@item.StockQuantity</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary btn-add-line"
+                                                data-id="@item.ItemID"
+                                                data-name="@item.ItemName"
+                                                data-price="@item.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                data-stock="@item.StockQuantity">
+                                            <i class="bi bi-cart-plus"></i> Chọn
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI: PHIẾU ĐẶT HÀNG MASTER-DETAIL -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 1rem;">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-cart-check me-2"></i>Phiếu Đặt Hàng Sỉ (Master-Detail)
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-controller="Orders" asp-action="PlaceOrder" method="post" id="orderForm">
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mặt hàng</th>
+                                    <th style="width: 90px;">SL</th>
+                                    <th class="text-end">Thành tiền</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderLinesBody">
+                                <tr id="emptyRow">
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="bi bi-basket d-block fs-3 mb-1"></i>
+                                        Chưa có mặt hàng nào. Bấm "Chọn" ở bảng bên trái để thêm.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center border-top pt-3 mb-3">
+                        <span class="fw-bold fs-6">Tổng cộng:</span>
+                        <span class="fw-bold fs-5 text-danger" id="grandTotal">0 VNĐ</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
+                        <i class="bi bi-check2-circle me-1"></i>Xác nhận Đặt hàng (Transaction)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#catalogTable').DataTable({
+                pageLength: 10,
+                language: {
+                    search: "Tìm kiếm:",
+                    lengthMenu: "Hiển thị _MENU_ dòng",
+                    info: "Hiển thị _START_ - _END_ / _TOTAL_ sản phẩm",
+                    paginate: { previous: "Trước", next: "Sau" }
+                }
+            });
+        });
+
+        function formatVnd(amount) {
+            return Number(amount).toLocaleString('vi-VN') + ' đ';
+        }
+
+        function recalcTotal() {
+            let total = 0;
+            document.querySelectorAll('#orderLinesBody tr[data-price]').forEach(row => {
+                const price = parseFloat(row.dataset.price);
+                const qty = parseInt(row.querySelector('.qty-input').value) || 0;
+                const sub = price * qty;
+                row.querySelector('.line-total').textContent = formatVnd(sub);
+                total += sub;
+            });
+            document.getElementById('grandTotal').textContent = Number(total).toLocaleString('vi-VN') + ' VNĐ';
+        }
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn-add-line');
+            if (btn) {
+                const emptyRow = document.getElementById('emptyRow');
+                if (emptyRow) emptyRow.remove();
+
+                const id = btn.dataset.id;
+                const name = btn.dataset.name;
+                const price = parseFloat(btn.dataset.price);
+                const stock = btn.dataset.stock;
+
+                const tr = document.createElement('tr');
+                tr.dataset.price = price;
+                tr.innerHTML = `
+                            <td>
+                                <div class="fw-semibold small">${name}</div>
+                                <small class="text-muted">Tồn: ${stock} | ${formatVnd(price)}</small>
+                                <input type="hidden" name="itemIds" value="${id}" />
+                            </td>
+                            <td>
+                                <input type="number" name="quantities" value="1" class="form-control form-control-sm qty-input" />
+                            </td>
+                            <td class="text-end small fw-semibold line-total">${formatVnd(price)}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-line">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>`;
+                document.getElementById('orderLinesBody').appendChild(tr);
+                recalcTotal();
+            }
+
+            if (e.target.closest('.btn-remove-line')) {
+                e.target.closest('tr').remove();
+                if (document.querySelectorAll('#orderLinesBody tr').length === 0) {
+                    document.getElementById('orderLinesBody').innerHTML = `
+                                <tr id="emptyRow">
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="bi bi-basket d-block fs-3 mb-1"></i>
+                                        Chưa có mặt hàng nào. Bấm "Chọn" ở bảng bên trái để thêm.
+                                    </td>
+                                </tr>`;
+                }
+                recalcTotal();
+            }
+        });
+
+        document.getElementById('orderLinesBody').addEventListener('input', function(e) {
+            if (e.target.classList.contains('qty-input')) {
+                recalcTotal();
+            }
+        });
+    </script>
+}
